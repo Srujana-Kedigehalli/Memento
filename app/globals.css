@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens adapted from the Lovable/Vite reference project (screenshots).
+ * Only the tokens Phase 1 actually uses are kept — no dark mode, sidebar, or
+ * chart tokens, since nothing in this phase renders them (Constitution
+ * Principle II: build for the users/features we have).
+ */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+  --background: oklch(0.977 0.014 92);
+  --foreground: oklch(0.28 0.045 155);
+  --card: oklch(0.992 0.008 92);
+  --card-foreground: oklch(0.28 0.045 155);
+  --primary: oklch(0.83 0.075 17);
+  --primary-foreground: oklch(0.28 0.045 155);
+  --secondary: oklch(0.66 0.062 150);
+  --secondary-foreground: oklch(0.985 0.01 92);
+  --muted: oklch(0.945 0.017 92);
+  --muted-foreground: oklch(0.5 0.03 150);
+  --accent: oklch(0.93 0.045 20);
+  --accent-foreground: oklch(0.28 0.045 155);
+  --destructive: oklch(0.577 0.16 27.325);
+  --destructive-foreground: oklch(0.985 0.01 92);
+  --border: oklch(0.9 0.02 92);
+  --input: oklch(0.9 0.02 92);
+  --ring: oklch(0.83 0.075 17);
+  --gradient-bloom: linear-gradient(
+    160deg,
+    oklch(0.93 0.045 20) 0%,
+    oklch(0.977 0.014 92) 55%,
+    oklch(0.93 0.03 150) 100%
+  );
+  --shadow-soft: 0 18px 40px -24px oklch(0.28 0.045 155 / 0.35);
+  --shadow-lift: 0 24px 60px -30px oklch(0.28 0.045 155 / 0.5);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+@utility bloom-bg {
+  background-image: var(--gradient-bloom);
+}
+
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+@utility shadow-lift {
+  box-shadow: var(--shadow-lift);
+}
