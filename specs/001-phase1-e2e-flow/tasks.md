@@ -134,6 +134,22 @@ event shows a count of 0.
 
 ---
 
+## Phase 7: Enhanced User Experience (Share, Download, Lightbox)
+
+**Purpose**: Add three capability enhancements for Phase 1: share button for hosts, individual photo download, and full-size lightbox viewer with carousel navigation.
+
+**No schema or backend endpoints required**: All three features use existing data structures and APIs.
+
+### Implementation for Share & Download & Lightbox
+
+- [ ] T030 [P] Add a "Share" button on the host event page (`app/page.tsx` after event creation) that uses `navigator.share()` to open a native share sheet on supported mobile browsers (iOS/Android); provide a "copy link to clipboard" fallback for desktop/unsupported browsers. Share the `galleryUrl` returned by the event creation response. This is client-side only (no new endpoints needed). Reference: Web Share API MDN, clipboard API for fallback.
+- [ ] T031 [P] Add an individual download link/button for each photo in the gallery grid (in `app/e/[eventId]/gallery/page.tsx`). The download link uses the public photo URL already returned by `GET /api/events/{eventId}/photos`, with an HTML `<a href={url} download>` attribute (no new backend endpoint needed). Ensure the link works for users with JavaScript disabled.
+- [ ] T032 [P] Implement a lightbox viewer in `app/e/[eventId]/gallery/page.tsx`: when a photo thumbnail is clicked, open a full-screen modal showing the photo at larger size, and allow navigation to previous/next photos via arrow keys (on desktop) or swipe gestures (on mobile) without reloading the page. Use existing shadcn/ui Dialog component as the modal container. No new API calls or schema changes required.
+
+**Checkpoint**: All three enhancements are purely frontend — they integrate the existing gallery page with Web APIs and client-side interactivity, increasing usability without requiring backend changes.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -145,6 +161,7 @@ event shows a count of 0.
   - US2 (Phase 4) depends on an existing event (US1) to have something to upload against, but its implementation (API routes, upload page) is independently buildable once Phase 2 is done.
   - US3 (Phase 5) depends on photos existing (US2) to be meaningful, but its implementation is independently buildable once Phase 2 is done.
 - **Polish (Phase 6)**: Depends on all user stories being complete.
+- **Enhancements (Phase 7)**: Depends on all user stories being complete (Phase 6); all three tasks (T030/T031/T032) are independent of each other and can run in parallel.
 
 ### Within Each User Story
 
@@ -156,6 +173,7 @@ event shows a count of 0.
 - T003 and T004 in Setup can run in parallel with each other (different files) but both must finish before Phase 3 page work starts.
 - T006, T007, T008 in Foundational can run in parallel (different files).
 - Once Phase 2 is complete, US1, US2, and US3 API-route tasks can be developed in parallel by different contributors, though the pages in US2/US3 are most meaningfully tested after US1/US2 exist.
+- T030, T031, T032 in Phase 7 can all run in parallel (no dependencies between them) as long as Phase 5 gallery page is complete.
 
 ---
 

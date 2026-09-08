@@ -9,14 +9,16 @@
 ## Summary
 
 Deliver the full Phase 1 loop — host creates one event with a PIN, gets a QR code linking to
-the event's gallery page, a guest uses that gallery page's upload action to add photos
-directly from their phone (choosing from their photo library, not camera-only), and the same
-gallery page shows all photos with a count — as a single Next.js (App Router) app deployed on
-Vercel. All server-side logic (event creation, PIN check, signed upload URL issuance,
-gallery/photo listing) runs in Next.js API routes / Server Actions using raw SQL (`pg`)
-against Supabase Postgres. Photo bytes never pass through the Next.js server: the browser
-uploads directly to Supabase Storage via a presigned URL to avoid Vercel's 4.5MB payload
-limit.
+the event's gallery page with a share button (Web Share API + copy-link fallback), a guest
+uses that gallery page's upload action to add photos directly from their phone (choosing from
+their photo library, not camera-only), and the same gallery page shows all photos with a count,
+individual download links, and a lightbox for full-size viewing with photo navigation — as a
+single Next.js (App Router) app deployed on Vercel. All server-side logic (event creation, PIN
+check, signed upload URL issuance, gallery/photo listing) runs in Next.js API routes / Server
+Actions using raw SQL (`pg`) against Supabase Postgres. Photo bytes never pass through the
+Next.js server: the browser uploads directly to Supabase Storage via a presigned URL to avoid
+Vercel's 4.5MB payload limit. Photo downloads use public Storage URLs directly (no backend
+endpoints needed). The lightbox is client-side only.
 
 ## Technical Context
 

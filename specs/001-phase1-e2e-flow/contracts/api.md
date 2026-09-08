@@ -110,3 +110,37 @@ List all photos for the event (used by the gallery page), most recent first.
 ```
 
 **Errors**: `404` if event does not exist (guest sees a "not found" state per spec edge case).
+
+---
+
+## Client-Side Features (No New Endpoints)
+
+### Share Button (FR-013)
+
+The host event page includes a "Share" button that shares the `galleryUrl` returned from
+`POST /api/events`. Implementation uses `navigator.share()` (Web Share API) when available
+(supported on most mobile browsers); on unsupported browsers (desktop Chrome, older browsers),
+the button triggers a fallback "copy link" action via the Clipboard API. No API endpoint
+needed — uses `galleryUrl` returned by event creation.
+
+**Share data sent**:
+```json
+{ "title": "Memento Album", "text": "Join my event", "url": "https://.../e/{eventId}/gallery" }
+```
+
+### Photo Downloads (FR-014)
+
+Each photo in the gallery is displayed with a download option (e.g., download button or
+right-click). The download link is a simple `<a href={url} download>` HTML element, where
+`url` is the public Storage URL already provided by `GET /api/events/{eventId}/photos`. No
+new API endpoint needed — direct download via public Storage URL (bucket is configured as
+public-read, so no signed URL or auth required).
+
+### Lightbox & Carousel (FR-015)
+
+Clicking a photo thumbnail in the gallery opens a full-screen lightbox modal (using shadcn/ui
+Dialog component). The lightbox displays the same photo URL and allows navigation to the
+previous/next photo in the gallery via arrow keys (desktop) or swipe gestures (mobile)
+without reloading the page. This is a client-side feature with no API involvement — it
+rearranges and displays the photos already fetched by the gallery page via
+`GET /api/events/{eventId}/photos`.

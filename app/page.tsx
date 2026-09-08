@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Share2 } from "lucide-react";
 
 type CreatedEvent = { eventId: string; uploadUrl: string; galleryUrl: string };
 
@@ -17,6 +18,7 @@ export default function HomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [event, setEvent] = useState<CreatedEvent | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -44,6 +46,34 @@ export default function HomePage() {
       setError("Something went wrong creating the event.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleShare() {
+    if (!event) return;
+    const shareData = {
+      title: "Memento Album",
+      text: "Join my event and share your photos!",
+      url: event.galleryUrl,
+    };
+
+    // Try Web Share API first (mobile browsers)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        // User cancelled share or error occurred, fall through to copy
+      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(event.galleryUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      alert("Could not share link. Please copy it manually.");
     }
   }
 
@@ -118,6 +148,10 @@ export default function HomePage() {
             </Button>
             <Button asChild className="w-full">
               <Link href={event.galleryUrl}>View gallery</Link>
+            </Button>
+            <Button onClick={handleShare} variant="secondary" className="w-full gap-2">
+              <Share2 size={16} />
+              {shareCopied ? "Link copied!" : "Share link"}
             </Button>
           </div>
         </div>

@@ -15,22 +15,30 @@
 A host sets up their wedding event by giving it a name and date, and protects host actions
 with a simple PIN. Once created, the host receives a QR code (and underlying link) that
 points guests to that event's shared gallery page, which includes the guest upload action —
-there is no separate upload-only page.
+there is no separate upload-only page. The host can also share the gallery link via the Web
+Share API (native share sheet on mobile) or a fallback "copy link" button.
 
 **Why this priority**: Nothing else in the loop can happen without an event existing and a
 way to share access to it. This is the foundation the rest of the flow depends on.
 
 **Independent Test**: Can be fully tested by creating an event with a name, date, and PIN, and
-verifying a QR code / link is generated that resolves to that event's gallery page.
+verifying a QR code / link is generated that resolves to that event's gallery page; verify
+the host can share the link via a share button.
 
 **Acceptance Scenarios**:
 
 1. **Given** no event exists yet, **When** the host submits a name, date, and PIN to create an
    event, **Then** the event is created and a QR code linking to the event's gallery page is
-   displayed.
+   displayed, along with a share button.
 2. **Given** an event already exists, **When** the host views the event again using the
-   correct PIN, **Then** the host can see the event details and the same QR code / link.
-3. **Given** an event exists, **When** someone provides an incorrect PIN for host actions,
+   correct PIN, **Then** the host can see the event details, the same QR code / link, and a
+   share button.
+3. **Given** the host is viewing their event, **When** they tap the share button on a
+   mobile browser with Web Share API support, **Then** a native share sheet appears.
+4. **Given** the host is viewing their event on a browser without Web Share API support,
+   **When** they tap the share button, **Then** a "copy link" action is available (e.g., a
+   tooltip or modal with a copy-to-clipboard button).
+5. **Given** an event exists, **When** someone provides an incorrect PIN for host actions,
    **Then** access to host-only actions is denied.
 
 ---
@@ -71,14 +79,17 @@ correct event.
 
 Anyone with the event link can open the shared gallery page that shows every photo uploaded
 for the event so far, along with a simple count of total photos. This is the same page the
-upload action lives on (User Story 2) — there is no separate view-only page.
+upload action lives on (User Story 2) — there is no separate view-only page. Each photo in
+the gallery can be downloaded as a file, and can be viewed full-size in a lightbox with the
+ability to scroll between photos.
 
 **Why this priority**: This closes the loop and delivers the visible payoff of the feature,
 but it depends on at least one photo having been uploaded (User Story 2) to be meaningful.
 
 **Independent Test**: Can be fully tested by uploading one or more photos for an event, then
 opening the gallery page and confirming every uploaded photo is visible along with an
-accurate count.
+accurate count; verify each photo can be downloaded and viewed full-size with navigation
+between photos.
 
 **Acceptance Scenarios**:
 
@@ -89,6 +100,14 @@ accurate count.
    of photos.
 3. **Given** the gallery is already open, **When** a new photo is uploaded and the page is
    manually refreshed, **Then** the new photo appears and the count updates accordingly.
+4. **Given** a photo is visible in the gallery, **When** the user clicks/taps on it, **Then**
+   it opens in a full-screen lightbox view.
+5. **Given** a photo is open in the lightbox, **When** the user swipes left/right (on mobile)
+   or uses arrow keys (on desktop), **Then** the view transitions to the previous/next photo
+   in the gallery.
+6. **Given** a photo is visible in the gallery (thumbnail or lightbox), **When** the user
+   initiates a download (e.g., via a download button or long-press), **Then** the photo is
+   downloaded to their device as a file.
 
 ---
 
@@ -134,6 +153,14 @@ accurate count.
   phone, not only in a local development environment.
 - **FR-012**: System MUST NOT require guests to install an app, create an account, or log in
   at any point in the upload or gallery-viewing flow.
+- **FR-013**: System MUST provide a share button on the host's event page that uses the Web
+  Share API (navigator.share) when available; on browsers without Web Share API support, the
+  button MUST offer a "copy link to clipboard" fallback.
+- **FR-014**: Every photo in the gallery MUST be individually downloadable as a file; download
+  links MUST use the public photo URL (no authentication required).
+- **FR-015**: Photos in the gallery MUST be viewable full-size (lightbox) when clicked/tapped;
+  when open, the lightbox MUST support navigation between photos (swipe or arrow keys) without
+  requiring a page reload.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -176,5 +203,13 @@ accurate count.
 - The photo file picker MUST let guests choose existing photos from their library, not force
   the camera open directly — forcing the camera (e.g., via the HTML `capture` attribute) is
   explicitly avoided since it prevents uploading already-taken photos.
+- Supabase Storage bucket MUST be configured as public (no auth required to read) to support
+  direct download links for photos (FR-014). Photo storage paths use random UUIDs and are
+  only revealed via authenticated API (to the event), so public bucket access does not expose
+  unintended photos.
+- The lightbox (FR-015) is a UI-only feature; no new backend endpoints or schema changes are
+  required — it displays the same photos and URLs already provided by the gallery page.
+- The Web Share API fallback (FR-013) is client-side only; no new endpoints needed — it shares
+  the `galleryUrl` returned from the event creation or QR endpoints.
 - The deployed URL is publicly accessible over HTTPS, consistent with the project's Vercel
   deployment model.
