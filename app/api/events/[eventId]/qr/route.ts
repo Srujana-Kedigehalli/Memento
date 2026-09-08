@@ -24,8 +24,10 @@ export async function GET(
   }
 
   const origin = new URL(request.url).origin;
-  const uploadUrl = `${origin}/e/${eventId}/upload`;
-  const dataUrl = await generateQrDataUrl(uploadUrl);
+  // Guests land on the gallery, which includes the upload action, matching
+  // the combined gallery+upload experience (not a separate upload-only page).
+  const galleryUrl = `${origin}/e/${eventId}/gallery`;
+  const dataUrl = await generateQrDataUrl(galleryUrl);
 
-  return NextResponse.json({ dataUrl, uploadUrl });
+  return NextResponse.json({ dataUrl, uploadUrl: galleryUrl });
 }

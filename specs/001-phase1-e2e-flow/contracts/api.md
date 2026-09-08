@@ -39,8 +39,9 @@ Check a host-supplied PIN for an existing event; sets a session cookie on succes
 
 ## GET /api/events/{eventId}/qr
 
-Return a QR code encoding the event's upload URL. Host-only action (FR-002): requires a valid
-host session cookie for `eventId` (set by `POST /api/events` or `POST
+Return a QR code encoding the event's gallery URL (guests land on the shared gallery, which
+includes the upload action — not a separate upload-only page). Host-only action (FR-002):
+requires a valid host session cookie for `eventId` (set by `POST /api/events` or `POST
 /api/events/{eventId}/verify-pin`).
 
 **Response 200**: `{ "dataUrl": "data:image/png;base64,..." }` (or serves image bytes directly,

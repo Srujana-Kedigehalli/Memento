@@ -55,18 +55,18 @@ styling.
 ## Phase 3: User Story 1 - Host creates an event and gets a shareable QR code (Priority: P1) 🎯 MVP
 
 **Goal**: Host submits a name, date, and PIN; an event is created, a host session is
-established, and a QR code linking to the upload page is available on demand.
+established, and a QR code linking to the event's gallery page is available on demand.
 
 **Independent Test**: Create an event with a name, date, and PIN, and verify a QR code/link is
-generated that resolves to that event's upload page; verify an incorrect PIN is rejected for
+generated that resolves to that event's gallery page; verify an incorrect PIN is rejected for
 host-only actions.
 
 ### Implementation for User Story 1
 
 - [X] T010 [US1] Implement `POST /api/events` in `app/api/events/route.ts`: validate input, store the event (PIN persisted per data-model.md), and set the host session cookie on success
 - [X] T011 [US1] Implement `POST /api/events/{eventId}/verify-pin` in `app/api/events/[eventId]/verify-pin/route.ts`: check PIN against the stored event, set the session cookie on success, return 401 on mismatch
-- [X] T012 [US1] Implement `GET /api/events/{eventId}/qr` in `app/api/events/[eventId]/qr/route.ts`: require a valid host session cookie (401 if missing/invalid), otherwise return a QR code encoding the event's upload URL
-- [X] T013 [US1] Build the host create/view event page in `app/page.tsx` using the design system from Phase 1 (name/date/PIN form, QR code display, upload/gallery links)
+- [X] T012 [US1] Implement `GET /api/events/{eventId}/qr` in `app/api/events/[eventId]/qr/route.ts`: require a valid host session cookie (401 if missing/invalid), otherwise return a QR code encoding the event's gallery URL
+- [X] T013 [US1] Build the host create/view event page in `app/page.tsx` using the design system from Phase 1 (name/date/PIN form, QR code display, gallery link)
 - [X] T014 [US1] Add input validation and error messaging for event creation (missing/invalid name, date, or PIN)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently — an event can be created and its QR code retrieved by an authenticated host.
@@ -75,19 +75,20 @@ host-only actions.
 
 ## Phase 4: User Story 2 - Guest scans the QR code and uploads photos (Priority: P2)
 
-**Goal**: A guest opens the event's upload page with no login, selects one or more photos, and
-they are uploaded directly to Storage and recorded against the event.
+**Goal**: A guest opens the event's gallery page with no login, uses its "Upload memories"
+action to choose one or more photos from their photo library, and they are uploaded directly
+to Storage and recorded against the event.
 
-**Independent Test**: Open the event's upload page link directly on a phone, select one or
-more photos, submit, and verify the photos are stored and linked to the correct event; verify
-a non-image file is rejected.
+**Independent Test**: Open the event's gallery link directly on a phone, use the upload
+action to choose one or more photos from the photo library, submit, and verify the photos are
+stored and linked to the correct event; verify a non-image file is rejected.
 
 ### Implementation for User Story 2
 
 - [X] T015 [US2] Implement `POST /api/events/{eventId}/upload-url` in `app/api/events/[eventId]/upload-url/route.ts`: validate `contentType` is an image type, return a presigned Storage upload URL and generated `storagePath`
 - [X] T016 [US2] Implement `POST /api/events/{eventId}/photos` in `app/api/events/[eventId]/photos/route.ts`: record a photo row for `storagePath` only after the client confirms the direct Storage upload succeeded
-- [X] T017 [US2] Build the guest upload page in `app/e/[eventId]/upload/page.tsx` using the design system: file picker supporting multi-select, calls `upload-url` then uploads directly to Storage, then calls `photos` to record each success
-- [X] T018 [US2] Add a "not found" state on the upload page for an invalid/nonexistent `eventId`
+- [X] T017 [US2] Build the guest upload action as a modal/dialog on `app/e/[eventId]/gallery/page.tsx` (not a separate upload-only page): file picker supporting multi-select from the photo library (no `capture` attribute forcing the camera), calls `upload-url` then uploads directly to Storage, then calls `photos` to record each success and refreshes the gallery
+- [X] T018 [US2] Add a "not found" state on the gallery page for an invalid/nonexistent `eventId`
 - [X] T019 [US2] Add client-side and server-side rejection of non-image file selections with a clear message
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently — an event can be created and a guest can upload photos to it via the QR link.
@@ -105,10 +106,21 @@ event shows a count of 0.
 ### Implementation for User Story 3
 
 - [X] T020 [US3] Implement `GET /api/events/{eventId}/photos` in `app/api/events/[eventId]/photos/route.ts`: list all photos for the event, most recent first, with a total count
-- [X] T021 [US3] Build the gallery page in `app/e/[eventId]/gallery/page.tsx` using the design system: photo grid and count, manual refresh to see new uploads
+- [X] T021 [US3] Build the gallery page in `app/e/[eventId]/gallery/page.tsx` using the design system: photo grid, count, "Upload memories" action (see T017), and manual refresh to see new uploads
 - [X] T022 [US3] Add a "not found" state on the gallery page for an invalid/nonexistent `eventId`
 
 **Checkpoint**: All user stories should now be independently functional — the full create → QR → upload → gallery loop works end to end.
+
+---
+
+## Phase 6.5: Bug Fixes (post-quickstart, real-phone testing)
+
+**Purpose**: Fixes found during real-device quickstart testing, not caught by build/lint alone
+
+- [X] T026 Disable Vercel Deployment Protection (Vercel Authentication) on the project so guests scanning the QR code aren't forced through a Vercel login (dashboard setting, not code)
+- [X] T027 Point the QR code and guest-facing link at the gallery page instead of a separate upload-only page, matching the intended combined gallery+upload design
+- [X] T028 Remove the `capture="environment"` attribute from the photo file input so guests can choose existing photos from their library, not only take a new one with the camera
+- [X] T029 Ensure there is always a way back to (or straight onto) the gallery after a successful upload — solved by T027 (guest is already on the gallery) plus a "View gallery" link on the standalone `app/e/[eventId]/upload` fallback page
 
 ---
 

@@ -9,12 +9,14 @@
 ## Summary
 
 Deliver the full Phase 1 loop — host creates one event with a PIN, gets a QR code linking to
-an upload page, a guest uploads photos directly from their phone, and a gallery page shows all
-photos with a count — as a single Next.js (App Router) app deployed on Vercel. All
-server-side logic (event creation, PIN check, signed upload URL issuance, gallery/photo
-listing) runs in Next.js API routes / Server Actions using raw SQL (`pg`) against Supabase
-Postgres. Photo bytes never pass through the Next.js server: the browser uploads directly to
-Supabase Storage via a presigned URL to avoid Vercel's 4.5MB payload limit.
+the event's gallery page, a guest uses that gallery page's upload action to add photos
+directly from their phone (choosing from their photo library, not camera-only), and the same
+gallery page shows all photos with a count — as a single Next.js (App Router) app deployed on
+Vercel. All server-side logic (event creation, PIN check, signed upload URL issuance,
+gallery/photo listing) runs in Next.js API routes / Server Actions using raw SQL (`pg`)
+against Supabase Postgres. Photo bytes never pass through the Next.js server: the browser
+uploads directly to Supabase Storage via a presigned URL to avoid Vercel's 4.5MB payload
+limit.
 
 ## Technical Context
 
@@ -94,33 +96,36 @@ specs/001-phase1-e2e-flow/
 app/
 ├── page.tsx                          # Host: create/view event form
 ├── e/[eventId]/
-│   ├── upload/page.tsx               # Guest: upload page (no login)
-│   └── gallery/page.tsx              # Guest/host: gallery page with count
+│   ├── upload/page.tsx               # Guest: standalone upload page (direct-link fallback; not the QR target)
+│   └── gallery/page.tsx              # Guest/host: gallery + count + "Upload memories" action (QR target)
 └── api/
     ├── events/route.ts               # POST create event (sets host session cookie), verify-pin sub-route
     ├── events/[eventId]/upload-url/route.ts  # POST issue presigned Storage upload URL
     ├── events/[eventId]/photos/route.ts      # POST record photo after upload, GET list photos
-    └── events/[eventId]/qr/route.ts   # GET QR code (host-only, requires session cookie)
+    └── events/[eventId]/qr/route.ts   # GET QR code for the gallery page (host-only, requires session cookie)
 
 lib/
 ├── db.ts                             # pg Pool + query helper (raw SQL only)
 ├── storage.ts                        # Supabase Storage client, presigned URL helper
-└── qr.ts                             # qrcode wrapper for generating upload-page QR codes
+└── qr.ts                             # qrcode wrapper for generating the gallery-page QR code
 
 db/
 └── migrations/
     └── 001_init.sql                  # events + photos table definitions
 
 components/                           # shadcn/ui components + Tailwind config/global CSS,
-                                       # applied in Setup before any page-building task
+                                       # applied in Setup before any page-building task; includes
+                                       # ui/dialog.tsx used for the gallery page's upload modal
 ```
 
 **Structure Decision**: Single Next.js App Router project (Constitution Principle III — no
-separate backend/frontend split). Routes are grouped by the three user stories: `app/page.tsx`
-(host create/view, US1), `app/e/[eventId]/upload` (guest upload, US2), and
-`app/e/[eventId]/gallery` (gallery + count, US3). All database and storage access is isolated
-in `lib/db.ts` and `lib/storage.ts` so API routes stay thin and no component ever imports `pg`
-or a service-role Storage key directly.
+separate backend/frontend split). The QR code and all guest-facing links point at
+`app/e/[eventId]/gallery` (US2 + US3 combined, matching the intended visual design — gallery
+view with an "Upload memories" action, not a separate upload-only page). `app/page.tsx`
+remains the host create/view flow (US1). `app/e/[eventId]/upload` still exists as a
+standalone direct-link fallback but is not what guests reach via the QR code. All database
+and storage access is isolated in `lib/db.ts` and `lib/storage.ts` so API routes stay thin and
+no component ever imports `pg` or a service-role Storage key directly.
 
 ## Complexity Tracking
 

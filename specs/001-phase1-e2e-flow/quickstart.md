@@ -26,13 +26,17 @@ real phone, per FR-011 and SC-004. See [data-model.md](./data-model.md) for sche
 
 2. **Scan the QR code (guest)**
    - Using a real phone's camera app, scan the displayed QR code.
-   - Confirm it opens the upload page for that event directly in the phone's browser, with no
-     login/account prompt.
+   - Confirm it opens the event's shared gallery page directly in the phone's browser (not a
+     separate upload-only page), with no login/account prompt, and an "Upload memories" action
+     visible.
 
 3. **Upload one or more photos (guest)**
-   - On the upload page, select one photo from the phone's library (or take a new one).
-   - Submit the upload and confirm a success indication.
-   - Repeat selecting multiple photos in one session and confirm all are accepted.
+   - On the gallery page, open the "Upload memories" action and choose one photo from the
+     phone's existing photo library (confirm the picker offers the library, not only the
+     camera).
+   - Submit the upload and confirm a success indication, and that the photo appears in the
+     gallery without leaving the page.
+   - Repeat choosing multiple photos in one session and confirm all are accepted.
    - Attempt to select a non-image file (if easily testable) and confirm it is rejected with a
      clear message.
 

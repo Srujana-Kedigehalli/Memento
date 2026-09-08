@@ -14,18 +14,19 @@
 
 A host sets up their wedding event by giving it a name and date, and protects host actions
 with a simple PIN. Once created, the host receives a QR code (and underlying link) that
-points guests to that event's upload page.
+points guests to that event's shared gallery page, which includes the guest upload action —
+there is no separate upload-only page.
 
 **Why this priority**: Nothing else in the loop can happen without an event existing and a
 way to share access to it. This is the foundation the rest of the flow depends on.
 
 **Independent Test**: Can be fully tested by creating an event with a name, date, and PIN, and
-verifying a QR code / link is generated that resolves to that event's upload page.
+verifying a QR code / link is generated that resolves to that event's gallery page.
 
 **Acceptance Scenarios**:
 
 1. **Given** no event exists yet, **When** the host submits a name, date, and PIN to create an
-   event, **Then** the event is created and a QR code linking to the event's upload page is
+   event, **Then** the event is created and a QR code linking to the event's gallery page is
    displayed.
 2. **Given** an event already exists, **When** the host views the event again using the
    correct PIN, **Then** the host can see the event details and the same QR code / link.
@@ -37,26 +38,30 @@ verifying a QR code / link is generated that resolves to that event's upload pag
 ### User Story 2 - Guest scans the QR code and uploads photos (Priority: P2)
 
 A guest, with no account and no app, scans the event's QR code with their phone camera and
-lands directly on an upload page for that event. They select one or more photos from their
-phone and upload them without any login step.
+lands directly on the event's shared gallery page — the same page anyone with the link sees —
+which includes an "Upload memories" action. They choose one or more photos from their phone's
+photo library (or take a new one with their camera) and upload them without any login step.
 
 **Why this priority**: This is the core value delivery of the product — getting a photo from
 a guest's phone into the shared collection. It depends on User Story 1 (an event and its QR
 code must already exist) but is independently testable once a valid event link exists.
 
-**Independent Test**: Can be fully tested by opening the event's upload page link directly on
-a phone (simulating a QR scan), selecting one or more photos, submitting the upload, and
-verifying the photos are stored and linked to the correct event.
+**Independent Test**: Can be fully tested by opening the event's gallery link directly on
+a phone (simulating a QR scan), using the upload action to choose one or more photos from the
+photo library, submitting the upload, and verifying the photos are stored and linked to the
+correct event.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid event upload link, **When** a guest opens it on their phone, **Then** they
-   see an upload page for that event with no login or account prompt.
-2. **Given** the guest is on the upload page, **When** they select one photo and submit,
-   **Then** the photo is uploaded and associated with that event.
-3. **Given** the guest is on the upload page, **When** they select multiple photos in one
-   session and submit, **Then** all selected photos are uploaded and associated with that
+1. **Given** a valid event link, **When** a guest opens it on their phone, **Then** they land
+   on the shared gallery page with an "Upload memories" action, and no login or account
+   prompt.
+2. **Given** the guest opens the upload action, **When** they choose one photo from their
+   phone's photo library and submit, **Then** the photo is uploaded and associated with that
    event.
+3. **Given** the guest opens the upload action, **When** they choose multiple photos from
+   their photo library in one session and submit, **Then** all selected photos are uploaded
+   and associated with that event.
 4. **Given** the guest selects a non-image file, **When** they attempt to upload it, **Then**
    the system rejects the file and explains that only photos are accepted.
 
@@ -64,8 +69,9 @@ verifying the photos are stored and linked to the correct event.
 
 ### User Story 3 - View the shared gallery (Priority: P3)
 
-Anyone with the event link can open a gallery page that shows every photo uploaded for the
-event so far, along with a simple count of total photos.
+Anyone with the event link can open the shared gallery page that shows every photo uploaded
+for the event so far, along with a simple count of total photos. This is the same page the
+upload action lives on (User Story 2) — there is no separate view-only page.
 
 **Why this priority**: This closes the loop and delivers the visible payoff of the feature,
 but it depends on at least one photo having been uploaded (User Story 2) to be meaningful.
@@ -108,11 +114,12 @@ accurate count.
 - **FR-002**: System MUST require a PIN, set at event creation, to authenticate host-only
   actions for that event (e.g., viewing/regenerating the QR code).
 - **FR-003**: System MUST generate a QR code that encodes a link directly to the event's
-  upload page.
-- **FR-004**: System MUST allow any guest who opens the upload link to access the upload page
-  without creating an account or logging in.
-- **FR-005**: Guests MUST be able to select and upload one or more photos in a single upload
-  action from a mobile browser.
+  gallery page, which includes the guest upload action (not a separate upload-only page).
+- **FR-004**: System MUST allow any guest who opens the gallery link to access the gallery
+  page and its upload action without creating an account or logging in.
+- **FR-005**: Guests MUST be able to choose one or more photos — from their phone's existing
+  photo library, not only by taking a new photo with the camera — and upload them in a single
+  upload action from a mobile browser.
 - **FR-006**: System MUST validate that uploaded files are photos and reject non-image files
   with a clear message.
 - **FR-007**: System MUST persist every successfully uploaded photo and associate it with the
@@ -163,5 +170,11 @@ accurate count.
   indefinitely.
 - The gallery does not require real-time/live updates; a manual page refresh to see new
   photos is sufficient, per explicit scope.
+- The guest-facing upload action lives on the same gallery page guests land on from the QR
+  code (a modal/dialog on that page), rather than a separate upload-only page — this matches
+  the intended visual design and avoids a redundant hop for guests who scan the link.
+- The photo file picker MUST let guests choose existing photos from their library, not force
+  the camera open directly — forcing the camera (e.g., via the HTML `capture` attribute) is
+  explicitly avoided since it prevents uploading already-taken photos.
 - The deployed URL is publicly accessible over HTTPS, consistent with the project's Vercel
   deployment model.

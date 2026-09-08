@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -123,7 +124,6 @@ export default function UploadPage() {
             type="file"
             accept="image/*"
             multiple
-            capture="environment"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -136,9 +136,12 @@ export default function UploadPage() {
         {message && <p className="text-sm text-destructive">{message}</p>}
 
         {status === "done" && (
-          <p className="text-sm text-secondary">
-            {uploadedCount} photo(s) uploaded! Head to the gallery to see them.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-secondary">{uploadedCount} photo(s) uploaded!</p>
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/e/${eventId}/gallery`}>View gallery</Link>
+            </Button>
+          </div>
         )}
 
         <Button
