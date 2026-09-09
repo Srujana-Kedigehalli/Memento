@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { query } from "@/lib/db";
 import { setHostSession } from "@/lib/session";
+import { getAbsoluteUrl } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,8 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       eventId,
-      uploadUrl: `/e/${eventId}/upload`,
-      galleryUrl: `/e/${eventId}/gallery`,
+      uploadUrl: getAbsoluteUrl(request, `/e/${eventId}/upload`),
+      galleryUrl: getAbsoluteUrl(request, `/e/${eventId}/gallery`),
     },
     { status: 201 },
   );

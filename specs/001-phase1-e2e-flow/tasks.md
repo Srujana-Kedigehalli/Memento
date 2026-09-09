@@ -124,6 +124,41 @@ event shows a count of 0.
 
 ---
 
+## Phase 6.6: Critical Fixes from Code Review (URL Building, Session Detection, Duplicate Prevention)
+
+**Purpose**: Four critical fixes addressing real-world issues in sharing, session handling, and duplicate uploads. All require both code and spec updates.
+
+### Fix 1: Frontend intro text rendering after event creation
+
+- [X] T033 [Frontend] Wrap the intro heading and description text in `app/page.tsx` so they only render in the pre-creation state (i.e., inside the `{!event ? ... : ...}` conditional). This prevents stale text from appearing after an event is created and the user sees the QR code + share button.
+
+### Fix 2: Absolute URLs for sharing + consistent URL building
+
+- [X] T034 [Backend] Create a shared `getAbsoluteUrl()` helper in `lib/utils.ts` that builds absolute URLs from the incoming request's host header and appropriate protocol (https in production, http in dev).
+- [X] T035 [Backend] Update `POST /api/events` in `app/api/events/route.ts` to use `getAbsoluteUrl()` to build and return absolute `uploadUrl` and `galleryUrl` instead of relative paths. This ensures the URLs work for sharing outside the app (WhatsApp, email, clipboard, etc.).
+- [X] T036 [Backend] Update `GET /api/events/{eventId}/qr` in `app/api/events/[eventId]/qr/route.ts` to use the same `getAbsoluteUrl()` helper for consistency, replacing the inline URL construction.
+- [X] T037 [Spec] Update `contracts/api.md` to document that `uploadUrl` and `galleryUrl` are now absolute URLs (including protocol and domain), and add requirement FR-016.
+
+### Fix 3: Session detection + redirect from root page
+
+- [X] T038 [Backend] Implement `GET /api/session/check` in `app/api/session/check/route.ts` to check if a valid host session cookie exists and return the associated event ID (or null if none exists).
+- [X] T039 [Backend] Add `getHostSessionEventId()` helper function to `lib/session.ts` to retrieve the event ID from a valid session cookie.
+- [X] T040 [Frontend] Update `app/page.tsx` to call `GET /api/session/check` on mount via `useEffect()`. If a valid session is found, redirect to the event's gallery page via `useRouter.push()` instead of showing the create-event form. Show a brief loading state while checking.
+- [X] T041 [Spec] Update `spec.md` to add requirement FR-017 (session detection and redirect), and `contracts/api.md` to document the new `GET /api/session/check` endpoint. Update `plan.md` to explain the session detection flow.
+
+### Fix 4: Exact-duplicate detection with SHA-256 hashing
+
+- [X] T042 [Database] Create `db/migrations/002_add_duplicate_detection.sql` to add a `file_hash` column (text, nullable) to the photos table and a unique constraint on `(event_id, file_hash)` to prevent duplicate hashes per event. Add an index on `file_hash` for faster duplicate lookups.
+- [X] T043 [Backend] Update `POST /api/events/{eventId}/upload-url` in `app/api/events/[eventId]/upload-url/route.ts` to accept an optional `fileHash` parameter in the request body. If provided and a photo with that hash already exists for the event, return the existing photo's info (`isDuplicate: true, photoId, storagePath, uploadedAt`) instead of issuing a new presigned URL.
+- [X] T044 [Backend] Update `POST /api/events/{eventId}/photos` in `app/api/events/[eventId]/photos/route.ts` to accept an optional `fileHash` parameter and store it in the photos table when recording the photo.
+- [X] T045 [Spec] Update `data-model.md` to document the `file_hash` column, the unique constraint, and the duplicate detection flow. Document both migrations (001 and 002).
+- [X] T046 [Spec] Update `contracts/api.md` to document that `POST /api/events/{eventId}/upload-url` now accepts `fileHash` and can return a duplicate detection response. Update `POST /api/events/{eventId}/photos` to document the optional `fileHash` parameter.
+- [X] T047 [Spec] Update `spec.md` to add requirement FR-018 (exact-duplicate detection). Update `plan.md` to explain the client-side SHA-256 hashing and server-side duplicate-check flow.
+
+**Checkpoint**: All four critical fixes are in place and documented. URLs are absolute (shareable), sessions redirect properly (no duplicate events), and duplicates are detected (no wasted storage). Quickstart validation should now pass without issues.
+
+---
+
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 **Purpose**: Final checks that span all user stories
@@ -142,11 +177,12 @@ event shows a count of 0.
 
 ### Implementation for Share & Download & Lightbox
 
-- [ ] T030 [P] Add a "Share" button on the host event page (`app/page.tsx` after event creation) that uses `navigator.share()` to open a native share sheet on supported mobile browsers (iOS/Android); provide a "copy link to clipboard" fallback for desktop/unsupported browsers. Share the `galleryUrl` returned by the event creation response. This is client-side only (no new endpoints needed). Reference: Web Share API MDN, clipboard API for fallback.
-- [ ] T031 [P] Add an individual download link/button for each photo in the gallery grid (in `app/e/[eventId]/gallery/page.tsx`). The download link uses the public photo URL already returned by `GET /api/events/{eventId}/photos`, with an HTML `<a href={url} download>` attribute (no new backend endpoint needed). Ensure the link works for users with JavaScript disabled.
-- [ ] T032 [P] Implement a lightbox viewer in `app/e/[eventId]/gallery/page.tsx`: when a photo thumbnail is clicked, open a full-screen modal showing the photo at larger size, and allow navigation to previous/next photos via arrow keys (on desktop) or swipe gestures (on mobile) without reloading the page. Use existing shadcn/ui Dialog component as the modal container. No new API calls or schema changes required.
+- [ ] T048 [P] Add a "Share" button on the host event page (`app/page.tsx` after event creation) that uses `navigator.share()` to open a native share sheet on supported mobile browsers (iOS/Android); provide a "copy link to clipboard" fallback for desktop/unsupported browsers. Share the `galleryUrl` returned by the event creation response. This is client-side only (no new endpoints needed). Reference: Web Share API MDN, clipboard API for fallback.
+- [ ] T049 [P] Add an individual download link/button for each photo in the gallery grid (in `app/e/[eventId]/gallery/page.tsx`). The download link uses the public photo URL already returned by `GET /api/events/{eventId}/photos`, with an HTML `<a href={url} download>` attribute (no new backend endpoint needed). Ensure the link works for users with JavaScript disabled.
+- [ ] T050 [P] Implement a lightbox viewer in `app/e/[eventId]/gallery/page.tsx`: when a photo thumbnail is clicked, open a full-screen modal showing the photo at larger size, and allow navigation to previous/next photos via arrow keys (on desktop) or swipe gestures (on mobile) without reloading the page. Use existing shadcn/ui Dialog component as the modal container. No new API calls or schema changes required.
 
 **Checkpoint**: All three enhancements are purely frontend — they integrate the existing gallery page with Web APIs and client-side interactivity, increasing usability without requiring backend changes.
+
 
 ---
 

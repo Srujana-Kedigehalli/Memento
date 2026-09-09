@@ -109,6 +109,13 @@ export default function GalleryPage() {
     }
   }, [lightboxIndex, photos.length]);
 
+  async function computeFileHash(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
   async function handleUpload() {
     if (files.length === 0) return;
     setStatus("uploading");
@@ -116,14 +123,31 @@ export default function GalleryPage() {
 
     for (const file of files) {
       try {
+        // Compute SHA-256 hash of the file for duplicate detection
+        const fileHash = await computeFileHash(file);
+
         const urlRes = await fetch(`/api/events/${eventId}/upload-url`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName: file.name, contentType: file.type }),
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type,
+            fileHash,
+          }),
         });
         const urlData = await urlRes.json();
         if (!urlRes.ok) throw new Error(urlData.error ?? "Could not start upload");
 
+        // If this is a duplicate, the server returns isDuplicate: true with the existing photo's info.
+        // Skip the storage upload and just show it's already in the gallery.
+        if (urlData.isDuplicate) {
+          // Duplicate already exists; refresh gallery to show it's there.
+          setMessage("This photo is already in the gallery!");
+          await load();
+          continue;
+        }
+
+        // Not a duplicate; proceed with direct storage upload
         const putRes = await fetch(urlData.signedUrl, {
           method: "PUT",
           headers: { "Content-Type": file.type },
@@ -131,10 +155,11 @@ export default function GalleryPage() {
         });
         if (!putRes.ok) throw new Error("Upload to storage failed");
 
+        // Record the photo with the file hash
         const recordRes = await fetch(`/api/events/${eventId}/photos`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ storagePath: urlData.storagePath }),
+          body: JSON.stringify({ storagePath: urlData.storagePath, fileHash }),
         });
         if (!recordRes.ok) throw new Error("Could not save the photo");
       } catch {

@@ -35,3 +35,26 @@ export async function hasHostSession(eventId: string) {
   const expectedBuffer = Buffer.from(expected);
   return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer);
 }
+
+/**
+ * Get the current event ID from the host session cookie if it exists and is valid.
+ * Returns the event ID if valid, null otherwise.
+ */
+export async function getHostSessionEventId(): Promise<string | null> {
+  const store = await cookies();
+  const value = store.get(COOKIE_NAME)?.value;
+  if (!value) return null;
+
+  const [eventId, signature] = value.split(".");
+  if (!eventId || !signature) return null;
+
+  const expected = sign(eventId);
+  const actual = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer)) {
+    return eventId;
+  }
+
+  return null;
+}

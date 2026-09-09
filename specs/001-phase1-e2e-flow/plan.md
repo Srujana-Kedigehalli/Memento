@@ -96,24 +96,28 @@ specs/001-phase1-e2e-flow/
 
 ```text
 app/
-├── page.tsx                          # Host: create/view event form
+├── page.tsx                          # Host: create/view event form with session check redirect
 ├── e/[eventId]/
 │   ├── upload/page.tsx               # Guest: standalone upload page (direct-link fallback; not the QR target)
 │   └── gallery/page.tsx              # Guest/host: gallery + count + "Upload memories" action (QR target)
 └── api/
+    ├── session/check/route.ts        # GET check for existing host session + return event ID (for root redirect)
     ├── events/route.ts               # POST create event (sets host session cookie), verify-pin sub-route
-    ├── events/[eventId]/upload-url/route.ts  # POST issue presigned Storage upload URL
+    ├── events/[eventId]/upload-url/route.ts  # POST issue presigned Storage upload URL (with duplicate detection)
     ├── events/[eventId]/photos/route.ts      # POST record photo after upload, GET list photos
     └── events/[eventId]/qr/route.ts   # GET QR code for the gallery page (host-only, requires session cookie)
 
 lib/
 ├── db.ts                             # pg Pool + query helper (raw SQL only)
 ├── storage.ts                        # Supabase Storage client, presigned URL helper
-└── qr.ts                             # qrcode wrapper for generating the gallery-page QR code
+├── qr.ts                             # qrcode wrapper for generating the gallery-page QR code
+├── session.ts                        # Host session cookie management (set, verify, retrieve event ID)
+└── utils.ts                          # Shared utilities: getAbsoluteUrl() for building absolute URLs
 
 db/
 └── migrations/
-    └── 001_init.sql                  # events + photos table definitions
+    ├── 001_init.sql                  # events + photos table definitions
+    └── 002_add_duplicate_detection.sql  # Add file_hash column and unique constraint for duplicate detection
 
 components/                           # shadcn/ui components + Tailwind config/global CSS,
                                        # applied in Setup before any page-building task; includes
@@ -125,9 +129,23 @@ separate backend/frontend split). The QR code and all guest-facing links point a
 `app/e/[eventId]/gallery` (US2 + US3 combined, matching the intended visual design — gallery
 view with an "Upload memories" action, not a separate upload-only page). `app/page.tsx`
 remains the host create/view flow (US1). `app/e/[eventId]/upload` still exists as a
-standalone direct-link fallback but is not what guests reach via the QR code. All database
-and storage access is isolated in `lib/db.ts` and `lib/storage.ts` so API routes stay thin and
-no component ever imports `pg` or a service-role Storage key directly.
+standalone direct-link fallback but is not what guests reach via the QR code.
+
+**URL Building**: A shared `getAbsoluteUrl()` helper in `lib/utils.ts` constructs absolute URLs
+from the incoming request's host header and appropriate protocol (https in production, http in
+dev). All browser-facing URLs (uploadUrl, galleryUrl, QR target) are built via this helper to
+ensure they work for sharing outside the app context (FR-016).
+
+**Session Management**: The host session is a signed, httpOnly cookie scoped per event. The root
+page (`app/page.tsx`) calls `GET /api/session/check` on mount to detect an existing session and
+redirect to the event's gallery instead of showing the create form again (FR-017). This prevents
+duplicate event creation on repeated page loads.
+
+**Duplicate Detection**: Before requesting a presigned upload URL, the client computes the file's
+SHA-256 hash using Web Crypto API. The hash is sent with the presigned URL request. If a photo
+with that hash already exists for the event, the server returns the existing photo's info instead
+of issuing a new URL (FR-018). The photos table stores the hash in a `file_hash` column with a
+unique constraint on `(event_id, file_hash)` to enforce at-most-one hash per event.
 
 ## Complexity Tracking
 

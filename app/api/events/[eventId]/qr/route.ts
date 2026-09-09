@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { generateQrDataUrl } from "@/lib/qr";
 import { hasHostSession } from "@/lib/session";
+import { getAbsoluteUrl } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,9 @@ export async function GET(
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const origin = new URL(request.url).origin;
-  // Guests land on the gallery, which includes the upload action, matching
-  // the combined gallery+upload experience (not a separate upload-only page).
-  const galleryUrl = `${origin}/e/${eventId}/gallery`;
+  // Use the same helper as POST /api/events to ensure consistency across
+  // all absolute URL building (browser-facing links must be absolute for sharing)
+  const galleryUrl = getAbsoluteUrl(request, `/e/${eventId}/gallery`);
   const dataUrl = await generateQrDataUrl(galleryUrl);
 
   return NextResponse.json({ dataUrl, uploadUrl: galleryUrl });

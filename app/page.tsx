@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Share2 } from "lucide-react";
 type CreatedEvent = { eventId: string; uploadUrl: string; galleryUrl: string };
 
 export default function HomePage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [pin, setPin] = useState("");
@@ -19,6 +21,38 @@ export default function HomePage() {
   const [event, setEvent] = useState<CreatedEvent | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  // On mount, check if a valid host session exists; if so, redirect to the event gallery
+  useEffect(() => {
+    async function checkExistingSession() {
+      try {
+        const res = await fetch("/api/session/check", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.eventId) {
+            router.push(`/e/${data.eventId}/gallery`);
+            return;
+          }
+        }
+      } catch {
+        // Ignore errors; session check is optional
+      } finally {
+        setIsChecking(false);
+      }
+    }
+
+    checkExistingSession();
+  }, [router]);
+
+  // Show loading state while checking for existing session
+  if (isChecking) {
+    return (
+      <main className="bloom-bg flex min-h-screen flex-col items-center justify-center px-6">
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </main>
+    );
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -54,7 +88,7 @@ export default function HomePage() {
     const shareData = {
       title: "Memento Album",
       text: "Join my event and share your photos!",
-      url: event.galleryUrl,
+      url: event.uploadUrl,
     };
 
     // Try Web Share API first (mobile browsers)
@@ -69,7 +103,7 @@ export default function HomePage() {
 
     // Fallback: copy to clipboard
     try {
-      await navigator.clipboard.writeText(event.galleryUrl);
+      await navigator.clipboard.writeText(event.uploadUrl);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     } catch {
@@ -79,14 +113,18 @@ export default function HomePage() {
 
   return (
     <main className="bloom-bg flex min-h-screen flex-col items-center px-6 py-16">
-      <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Memento Album</p>
-      <h1 className="font-display mt-2 text-center text-4xl font-medium text-foreground sm:text-5xl">
-        Create your event
-      </h1>
-      <p className="mt-3 max-w-md text-center text-sm text-muted-foreground">
-        Give your event a name, date, and PIN. You&apos;ll get a QR code guests can scan to add
-        their photos to your shared gallery.
-      </p>
+      {!event ? (
+        <>
+          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Memento Album</p>
+          <h1 className="font-display mt-2 text-center text-4xl font-medium text-foreground sm:text-5xl">
+            Create your event
+          </h1>
+          <p className="mt-3 max-w-md text-center text-sm text-muted-foreground">
+            Give your event a name, date, and PIN. You&apos;ll get a QR code guests can scan to add
+            their photos to your shared gallery.
+          </p>
+        </>
+      ) : null}
 
       {!event ? (
         <form

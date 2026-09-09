@@ -161,6 +161,20 @@ between photos.
 - **FR-015**: Photos in the gallery MUST be viewable full-size (lightbox) when clicked/tapped;
   when open, the lightbox MUST support navigation between photos (swipe or arrow keys) without
   requiring a page reload.
+- **FR-016**: URLs returned by the API (`uploadUrl`, `galleryUrl` from POST /api/events and
+  GET /api/events/{eventId}/qr) MUST be absolute URLs (including protocol and domain) built
+  from the incoming request's host header. This ensures they work for sharing outside the app
+  context (WhatsApp, email, clipboard, etc.) without relying on the browser to fill in the
+  domain. Protocol selection: https in production, http in dev.
+- **FR-017**: When a host returns to the home page, if a valid host session exists, the system
+  MUST redirect them directly to their event's gallery page instead of showing the create-event
+  form. The create form is only reachable when no valid host session exists. This prevents
+  duplicate event creation on repeated page loads.
+- **FR-018**: System MUST detect and prevent exact-duplicate file uploads: before uploading a
+  photo, the client computes its SHA-256 hash (Web Crypto API) and sends it with the presigned
+  URL request. If a photo with that hash already exists for the event, the server returns the
+  existing photo's info instead of issuing a new URL. The guest is informed the photo is
+  already in the gallery, and no wasted storage or bandwidth occurs.
 
 ### Key Entities *(include if feature involves data)*
 

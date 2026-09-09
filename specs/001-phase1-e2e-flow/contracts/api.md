@@ -14,12 +14,39 @@ Create the event (host action).
 
 **Response 201**:
 ```json
-{ "eventId": "uuid", "uploadUrl": "https://.../e/{eventId}/upload", "galleryUrl": "https://.../e/{eventId}/gallery" }
+{ "eventId": "uuid", "uploadUrl": "https://example.com/e/{eventId}/upload", "galleryUrl": "https://example.com/e/{eventId}/gallery" }
 ```
-(host session cookie set on success, scoped to `eventId` — same cookie `verify-pin` sets, since
-the host has just proven the PIN by choosing it)
+
+**Important**: `uploadUrl` and `galleryUrl` are **absolute URLs** (including protocol and domain)
+built from the incoming request's host header and the appropriate protocol (https in production,
+http in dev). This ensures they work for sharing outside the app context (WhatsApp, clipboard,
+email, etc.) without relying on the browser to fill in the domain. The host session cookie is
+set on success, scoped to `eventId` — same cookie `verify-pin` sets, since the host has just
+proven the PIN by choosing it.
 
 **Errors**: `400` if `name`/`eventDate`/`pin` missing or invalid.
+
+---
+
+## GET /api/session/check
+
+Check if a valid host session exists and return the associated event ID. Used by the root page
+to detect when a host returns, so it can redirect straight to their event's gallery instead of
+showing the create-event form again.
+
+**Response 200**:
+```json
+{ "eventId": "uuid" }
+```
+
+**Response 200** (no session):
+```json
+{ "eventId": null }
+```
+
+**Notes**: No login required — this endpoint reads the httpOnly host session cookie set by
+`POST /api/events` or `POST /api/events/{eventId}/verify-pin`. The root page calls this on
+mount to determine whether to show the create form or redirect to an existing event's gallery.
 
 ---
 
@@ -54,25 +81,39 @@ implementation choice)
 
 ## POST /api/events/{eventId}/upload-url
 
-Issue a presigned Supabase Storage upload URL for one photo. Called once per photo the guest
-selects, before the browser uploads that file directly to Storage.
+Issue a presigned Supabase Storage upload URL for one photo (or return an existing photo if a
+duplicate is detected). Called once per photo the guest selects, before the browser uploads
+that file directly to Storage.
 
 **Request body**:
 ```json
-{ "fileName": "string", "contentType": "image/jpeg" }
+{ "fileName": "string", "contentType": "image/jpeg", "fileHash": "sha256-hex-string" }
 ```
 
-**Response 200**:
+The `fileHash` is a SHA-256 hash (hex-encoded, computed client-side using Web Crypto API) of
+the file's complete byte content. It enables exact-duplicate detection: if a photo with the same
+hash already exists for this event, the server returns the existing photo instead of issuing a
+new URL.
+
+**Response 200** (new file):
 ```json
-{ "signedUrl": "https://.../storage/v1/...", "storagePath": "events/{eventId}/{generatedName}" }
+{ "signedUrl": "https://.../storage/v1/...", "storagePath": "events/{eventId}/{generatedName}", "fileHash": "sha256-hex-string" }
 ```
 
-**Errors**: `400` if `contentType` is not an accepted image type; `404` if event does not
-exist.
+**Response 200** (duplicate detected):
+```json
+{ "isDuplicate": true, "photoId": "uuid", "storagePath": "events/{eventId}/...", "uploadedAt": "ISO-8601 timestamp" }
+```
 
-**Notes**: This is the only endpoint involved in "sending" a photo from the guest's
-perspective; the actual bytes go from the browser directly to `signedUrl`, never through this
-API route.
+When `isDuplicate` is true, the client should skip the direct Storage upload and instead proceed
+directly to the "record photo" step (or show the guest that the photo is already in the gallery).
+
+**Errors**: `400` if `contentType` is not an accepted image type; `404` if event does not exist.
+
+**Notes**: This is the only endpoint involved in "sending" a photo from the guest's perspective
+(aside from the duplicate check); the actual bytes go from the browser directly to `signedUrl`,
+never through this API route. File hashing is done client-side to avoid sending file bytes to
+the server.
 
 ---
 
@@ -83,8 +124,11 @@ previous call) has succeeded.
 
 **Request body**:
 ```json
-{ "storagePath": "string" }
+{ "storagePath": "string", "fileHash": "sha256-hex-string" }
 ```
+
+The `fileHash` (optional but recommended) allows duplicate-detection queries to work correctly
+if the same hash is uploaded again in a future request.
 
 **Response 201**:
 ```json
