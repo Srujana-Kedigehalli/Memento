@@ -1,10 +1,12 @@
 # Feature Specification: Phase 1 - Single-User End-to-End Flow
 
+> **Superseded by [002-identity-trust-media](../002-identity-trust-media/spec.md).** The PIN, anonymous-guest, and single-event model described below is replaced by real host and guest accounts and multiple events. Phase 1's gallery features (viewer, download, count, share) are carried into 002 as User Story 8. Kept for history only; do not build from this file.
+
 **Feature Branch**: `001-phase1-e2e-flow`
 
 **Created**: 2026-09-08
 
-**Status**: Draft
+**Status**: Superseded by 002-identity-trust-media
 
 **Input**: User description: "Build Phase 1 of Memento: an end-to-end flow for a single user. Goal: I create an event, get a QR code for it, scan that QR code myself, upload a photo, and see it appear in a shared gallery. This is the whole loop working for one person, deployed for real — not local-only."
 

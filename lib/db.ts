@@ -1,4 +1,4 @@
-import { Pool, type QueryResultRow } from "pg";
+import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 // Shared across hot-reloaded module instances in dev so we don't open a new
 // pool per request. Raw SQL only — no ORM (Constitution Principle IV).
@@ -8,6 +8,8 @@ export const pool =
   globalForPg.pgPool ??
   new Pool({
     connectionString: process.env.DATABASE_URL,
+    // Serverless: keep each instance's pool small (prefer the pooled connection string).
+    max: Number(process.env.PG_POOL_MAX ?? 5),
   });
 
 if (process.env.NODE_ENV !== "production") {
@@ -19,4 +21,20 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
   params?: unknown[],
 ) {
   return pool.query<T>(text, params);
+}
+
+/** Run `fn` inside one transaction on a dedicated connection; rolls back if it throws. */
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 }
