@@ -1,9 +1,24 @@
 import { route } from "@/lib/auth/errors";
 import { requireEventHost } from "@/lib/auth/guards";
-import { getEvent, setEventClosed } from "@/lib/queries/events";
+import { getEvent, setEventClosed, getEventWithStats } from "@/lib/queries/events";
 import { parseJsonBody, requireEventName } from "@/lib/validate";
 import { generateEventToken } from "@/lib/auth/tokens";
 import { query } from "@/lib/db";
+
+export const GET = route(async (_request: any, { params }: { params: Promise<{ eventId: string }> }) => {
+  const { eventId } = await params;
+  await requireEventHost(eventId);
+
+  const event = await getEventWithStats(eventId);
+  if (!event) {
+    return new Response(JSON.stringify({ error: "Event not found" }), { status: 404 });
+  }
+
+  return new Response(JSON.stringify({ event }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});
 
 export const PATCH = route(async (request, { params }: { params: Promise<{ eventId: string }> }) => {
   const { eventId } = await params;
