@@ -163,7 +163,7 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground">{event.eventDate}</p>
                     {event.closedAt && <p className="text-xs text-destructive">Closed</p>}
                   </div>
-                  <Link href={`/dashboard/events/${event.id}`}>
+                  <Link href={`/events/${event.id}`}>
                     <Button variant="outline" size="sm">
                       Manage
                     </Button>

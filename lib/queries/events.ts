@@ -78,3 +78,34 @@ export async function restoreEvent(eventId: string): Promise<void> {
     [eventId],
   );
 }
+
+export async function rotateEventToken(eventId: string): Promise<string | null> {
+  const newToken = generateEventToken();
+  const result = await query<{ access_token: string }>(
+    `update events set access_token = $1 where id = $2 and deleted_at is null returning access_token`,
+    [newToken, eventId],
+  );
+  return result.rows[0]?.access_token || null;
+}
+
+export async function getEventWithStats(eventId: string): Promise<(Event & { photoCount: number; guestCount: number }) | null> {
+  const result = await query<Event & { photoCount: string; guestCount: string }>(
+    `select e.id, e.name, e.event_date as "eventDate", e.access_token as "accessToken",
+            e.closed_at as "closedAt", e.created_at as "createdAt",
+            count(distinct m.id) as "photoCount",
+            count(distinct eg.guest_id) as "guestCount"
+     from events e
+     left join media m on m.event_id = e.id and m.deleted_at is null and m.visibility = 'visible'
+     left join event_guests eg on eg.event_id = e.id
+     where e.id = $1 and e.deleted_at is null
+     group by e.id`,
+    [eventId],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    ...row,
+    photoCount: parseInt(row.photoCount, 10),
+    guestCount: parseInt(row.guestCount, 10),
+  };
+}
