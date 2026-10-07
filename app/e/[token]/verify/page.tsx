@@ -29,10 +29,14 @@ export default function VerifyPage() {
     async function loadConfig() {
       try {
         const res = await fetch("/api/auth/guest/verification/config");
+        if (!res.ok) {
+          setError("This page isn't available right now. Please try again later.");
+          return;
+        }
         const data = await res.json();
         setConfig(data);
       } catch (err) {
-        setError("Failed to load verification config");
+        setError("This page isn't available right now. Please try again later.");
       }
     }
     loadConfig();
@@ -107,7 +111,15 @@ export default function VerifyPage() {
   }
 
   if (!config) {
-    return <main className="bloom-bg min-h-screen" />;
+    return (
+      <main className="bloom-bg flex min-h-screen flex-col items-center justify-center px-6 text-center">
+        {error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        )}
+      </main>
+    );
   }
 
   return (
