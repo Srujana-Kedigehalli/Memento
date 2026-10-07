@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -16,28 +16,45 @@ type UploadFile = {
 
 export default function UploadPage() {
   const params = useParams<{ token: string }>();
+  const router = useRouter();
   const [uploads, setUploads] = useState<UploadFile[]>([]);
   const [isOwnerHost, setIsOwnerHost] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [guestName, setGuestName] = useState("");
 
-  // Load event metadata
+  const [gateReady, setGateReady] = useState(false);
+
+  // Gate: hosts upload directly; guests must verify, then agree to consent, before uploading.
   useEffect(() => {
-    async function loadEvent() {
+    async function gate() {
       try {
         const res = await fetch(`/api/e/${params.token}`, { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          setIsOwnerHost(data.isOwnerHost);
-          setIsClosed(Boolean(data.event.closedAt));
+        if (!res.ok) {
+          setGateReady(true);
+          return;
         }
+        const data = await res.json();
+        setIsOwnerHost(data.isOwnerHost);
+        setIsClosed(Boolean(data.event.closedAt));
+        if (!data.isOwnerHost && !data.event.closedAt) {
+          if (!data.isVerified) {
+            router.replace(`/e/${params.token}/verify`);
+            return;
+          }
+          if (!data.hasConsent) {
+            router.replace(`/e/${params.token}/consent`);
+            return;
+          }
+        }
+        setGateReady(true);
       } catch (err) {
         console.error("Failed to load event:", err);
+        setGateReady(true);
       }
     }
-    loadEvent();
-  }, [params.token]);
+    gate();
+  }, [params.token, router]);
 
   // Process file uploads with concurrency limit
   useEffect(() => {
@@ -167,6 +184,10 @@ export default function UploadPage() {
     }
   }
 
+  if (!gateReady) {
+    return <main className="bloom-bg min-h-screen" />;
+  }
+
   if (isClosed) {
     return (
       <main className="bloom-bg flex min-h-screen flex-col items-center justify-center px-6 text-center">
@@ -202,12 +223,11 @@ export default function UploadPage() {
                 multiple
                 accept="image/jpeg,image/png,image/webp,image/heic"
                 onChange={handleFileSelect}
-                disabled={uploads.length > 0}
                 className="hidden"
               />
               <div className="cursor-pointer rounded-lg border-2 border-dashed border-border px-6 py-12 text-center hover:bg-muted/50">
                 <p className="font-medium text-foreground">Click to select photos</p>
-                <p className="mt-1 text-xs text-muted-foreground">or drag and drop</p>
+                <p className="mt-1 text-xs text-muted-foreground">JPEG, PNG, WebP or HEIC, up to 25 MB each</p>
               </div>
             </label>
           </div>

@@ -98,7 +98,7 @@ export default function VerifyPage() {
         return;
       }
 
-      router.push(`/e/${params.token}`);
+      router.push(`/e/${params.token}/upload`);
     } catch (err) {
       setError("Something went wrong");
     } finally {

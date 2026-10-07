@@ -36,7 +36,7 @@ export default function ConsentPage() {
         return;
       }
 
-      router.push(`/e/${params.token}`);
+      router.replace(`/e/${params.token}/upload`);
     } catch (err) {
       setError("Something went wrong");
     } finally {
@@ -67,7 +67,7 @@ export default function ConsentPage() {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => router.back()}
+              onClick={() => router.replace(`/e/${params.token}`)}
               disabled={loading}
             >
               Back
