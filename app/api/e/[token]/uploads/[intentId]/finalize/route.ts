@@ -50,9 +50,8 @@ export const POST = route(async (request: any, { params }: { params: Promise<{ t
   );
 
   // Finalize the upload
-  const { mediaId, promptForName } = await finalizeUpload(
+  const { mediaId, promptForName, duplicate } = await finalizeUpload(
     event.id,
-    intentId,
     intent.temp_path,
     intent.declared_mime || "image/jpeg",
     intent.guest_id,
@@ -61,8 +60,9 @@ export const POST = route(async (request: any, { params }: { params: Promise<{ t
 
   return new Response(
     JSON.stringify({
-      mediaId,
+      mediaId: mediaId || undefined,
       promptForName,
+      duplicate,
     }),
     { status: 200, headers: { "Content-Type": "application/json" } },
   );
