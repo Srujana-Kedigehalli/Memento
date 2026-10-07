@@ -67,8 +67,8 @@ export class EmailOtpProvider implements VerificationProvider {
     const codeHash = this.hashCode(code);
 
     // Get all valid codes for this identifier
-    const codesResult = await query<{ id: string; attempt_count: number }>(
-      `select id, attempt_count from otp_codes
+    const codesResult = await query<{ id: string; code_hash: string; attempt_count: number }>(
+      `select id, code_hash, attempt_count from otp_codes
        where identifier = $1 and expires_at > now() and used_at is null
        order by created_at desc
        limit 3`,
@@ -81,7 +81,7 @@ export class EmailOtpProvider implements VerificationProvider {
       await query(`update otp_codes set attempt_count = attempt_count + 1 where id = $1`, [row.id]);
 
       // Check if this one matches
-      if (row.id === codeHash) {
+      if (row.code_hash === codeHash) {
         found = true;
         break;
       }
